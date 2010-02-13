@@ -36,15 +36,21 @@ sub invert_authors2email {
 }
 
 open my $log, "log.xml";
+binmode $log, ":utf8";
 my @log = <$log>;
 close $log;
 
 open my $out, ">", "log.new.xml";
+binmode $out, ":utf8";
 for my $line (@log) {
     if( $line =~ m{author="(.*?) &lt;(.*?)&gt;"} ) {
-        my $author = $email2authors{$2};
-        warn "Author for $line not found" unless $author;
-        $line =~ s{author="(.*?)"}{author="$author"};
+        my $author = $email2authors->{$2};
+        if( $author ) {
+            $line =~ s{author="(.*?)"}{author="$author"};
+        }
+        else {
+            warn "Author for '$1', '$2', '$line' not found";
+        }
     }
 
     print $out $line;
@@ -692,9 +698,6 @@ Graham Barr:
   - gbarr@monty.mutatus.co.uk
 Graham TerMarsch:
   - graham@howlingfrog.com
-Paul Green:
-  - Paul.Green@stratus.com
-  - pgreen@seussnt.stratus.com
 Greg Bacon:
   - gbacon@adtrn-srv4.adtran.com
 Greg Chapman:
@@ -1389,6 +1392,7 @@ Paul Gaborit:
   - Paul.Gaborit@enstimac.fr
 Paul Green:
   - Paul.Green@stratus.com
+  - pgreen@seussnt.stratus.com
 Paul Holser:
   - Paul.Holser.pholser@nortelnetworks.com
 Paul Johnson:
@@ -1917,8 +1921,6 @@ andrew@sundale.net:
   - andrew@sundale.net
 arbor@al37al08.telecel.pt:
   - arbor@al37al08.telecel.pt
-author scotth@sgi.com 842220273 +0000:
-  - author scotth@sgi.com 842220273 +0000
 bah@longitude.com:
   - bah@longitude.com
 bart@cg681574-a.adubn1.nj.home.com:
