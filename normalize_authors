@@ -1,3 +1,58 @@
+#!/usr/bin/perl
+
+use perl5i::0;
+use YAML::XS;
+no utf8;  # its interfering with the DATA loading
+
+my %Ignore_Emails = map { $_ => 1 } qw(
+    unknown
+    perlbug@perl.org
+    perlbug-comment@perl.org
+    perlbug-followup@perl.org
+);
+
+my $authors2email = Load(join "", <DATA>);
+my $email2authors = invert_authors2email($authors2email);
+1;
+
+sub invert_authors2email {
+    my $authors2email = shift;
+
+    my %email2authors;
+    for my $author ($authors2email->keys->flatten) {
+        my $emails = $authors2email->{$author};
+
+        for my $email (@$emails) {
+            next if $Ignore_Emails{$email};
+
+            say "$email is already owned by $email2authors{$email}"
+              if $email2authors{$email};
+
+            $email2authors{$email} = $author;
+        }
+    }
+
+    return \%email2authors;
+}
+
+open my $log, "log.xml";
+my @log = <$log>;
+close $log;
+
+open my $out, ">", "log.new.xml";
+for my $line (@log) {
+    if( $line =~ m{author="(.*?) &lt;(.*?)&gt;"} ) {
+        my $author = $email2authors{$2};
+        warn "Author for $line not found" unless $author;
+        $line =~ s{author="(.*?)"}{author="$author"};
+    }
+
+    print $out $line;
+}
+close $out;
+
+
+__DATA__
 A. C. Yardley:
   - yardley@tanet.net
 AUGUSTE-ETIENNE Jose:
@@ -94,15 +149,12 @@ Andreas J König:
   - andk@cpan.org
   - andreas.koenig.7os6VVqR@franz.ak.mind.de
   - a.koenig@kulturbox.de
-  - andreas.koenig.7os6VVqR@franz.ak.mind.de
   - k@sissy.in-berlin.de
   - koenig@anna.mind.de
   - (none)
   - a.koenig@mind.de
-  - andk@cpan.org
   - k@anna.in-berlin.de
   - k@anna.mind.de
-  - a.koenig@mind.de
 Andreas Karrer:
   - karrer@ife.ee.ethz.ch
 Andreas Schwab:
@@ -211,8 +263,6 @@ Bill Campbell:
   - bill@celestial.com
 Bill Glicker:
   - billg@burrelles.com
-Bill Middleton:
-  - wmiddlet@adobe.com
 Billy Constantine:
   - wdconsta@cs.adelaide.edu.au
 Blair Zajac:
@@ -242,7 +292,6 @@ Brad Lanam:
 Bram:
   - p5p@perl.wizbit.be
   - perl-rt@wizbit.be
-Bram via RT:
   - perlbug-comment@perl.org
 Brandon Black:
   - blblack@gmail.com
@@ -280,8 +329,6 @@ Cary D. Renzema:
   - caryr@mxim.com
 Casey R. Tweten:
   - crt@kiski.net
-Casey Tweten:
-  - crt@kiski.net
   - perl@ctweten.amsite.com
 Casey West:
   - casey@geeknest.com
@@ -312,7 +359,6 @@ Chip Turner:
   - cturner@redhat.com
 Chris 'BinGOs' Williams:
   - chris@bingosnet.co.uk
-  - chris@bingosnet.co.uk
 Chris Ball:
   - chris@cpan.org
 Chris Bongaarts:
@@ -329,8 +375,6 @@ Chris Nandor:
   - pudge@pobox.com
 Chris Pepper:
   - unknown
-Chris Williams:
-  - chris@bingosnet.co.uk
 Christian Burger:
   - burger@terra.mpikg-teltow.mpg.de
 Christian Kirsch:
@@ -351,7 +395,6 @@ Chun Bing Ge:
   - gecb@cn.ibm.com
 Claes Jakobsson:
   - claes@surfar.nu
-  - claes@surfar.nu
 Clinton A. Pierce:
   - clintp@geeksalad.org
   - cpierce1@ford.com
@@ -367,8 +410,6 @@ Colin Watson:
   - colinw@zeus.com
 Conrad E. Kimball:
   - cek@tblv021.ca.boeing.com
-Coral:
-  - coral@moonlight.crystalflame.net
 Craig A. Berry:
   - craig.a.berry@gmail.com
   - craigberry@mac.com
@@ -507,8 +548,6 @@ Diab Jerius:
   - dj@head-cfa.harvard.edu
 Tom Dinger:
   - unknown
-Dintelmann, Peter:
-  - Peter.Dintelmann@dresdner-bank.com
 Dmitry Karasik:
   - dk@tetsuo.karasik.eu.org
 Dominic Dunlop:
@@ -676,7 +715,7 @@ Gwyn Judd:
 H.Merijn Brand:
   - merijn@a5.(none)
   - merijn@l1.procura.nl
-  - [mailto:h.m.brand@xs4all.nl]
+  - "[mailto:h.m.brand@xs4all.nl]"
   - h.m.brand@xs4all.nl
 Hal Morris:
   - hom00@utsglobal.com
@@ -722,6 +761,7 @@ Iain "Spoon" Truskett:
   - spoon@dellah.org
 Ian Goodacre:
   - Ian.Goodacre@xtra.co.nz
+  - perlbug-followup@perl.org
 Ian Phillipps:
   - Ian.Phillipps@iname.com
 Igor Sutton:
@@ -877,6 +917,7 @@ John D Groenveld:
   - groenvel@cse.psu.edu
 John E. Malmberg:
   - wb8tyw@qsl.net
+  - wb8tyw@gmail.com
 John Holdsworth:
   - coldwave@bigfoot.com
 John Hughes:
@@ -889,9 +930,6 @@ John L. Allen:
   - allen@grumman.com
 John Macdonald:
   - jmm@revenge.elegant.com
-John Malmberg:
-  - wb8tyw@gmail.com
-  - wb8tyw@qsl.net
 John Nolan:
   - jpnolan@Op.Net
 John P. Linderman:
@@ -972,7 +1010,7 @@ José Pedro Oliveira:
 Juerd:
   - juerd@convolution.nl
   - juerd@cpan.org
-  - #####@juerd.nl
+  - "#####@juerd.nl"
 Juha Laiho:
   - juha.laiho@Elma.Net
 KAWAI Takanori:
@@ -988,7 +1026,6 @@ Karsten Sperling:
 Kay Röpke:
   - kay@dolphin-services.de
   - kroepke@dolphin-services.de
-  - kay@dolphin-services.de
 Keith Neufeld:
   - neufeld@fast.pvi.org
 Ken Fox:
@@ -1087,7 +1124,7 @@ Luther Huffman:
   - lutherh@infinet.com
 M.J.T. Guy:
   - mjtg@cus.cam.ac.uk
-  - mjtg@cus.cam.ac.uk
+  - mjtg@cam.ac.uk
 Major Sébastien:
   - sebastien.major@crdp.ac-caen.fr
 Makoto MATSUSHITA:
@@ -1239,8 +1276,6 @@ Mik Firestone:
   - fireston@lexmark.com
 Mike Giroux:
   - rmgiroux@acm.org
-Mike Guy:
-  - mjtg@cam.ac.uk
 Mike Hopkirk (hops):
   - hops@scoot.pdev.sco.com
   - hops@sco.com
@@ -1314,7 +1349,6 @@ Norton Allen:
   - allen@huarp.harvard.edu
   - nort@bottesini.harvard.edu
   - nort@qnx.com
-  - allen@huarp.harvard.edu
 OKAIE Yutaka:
   - unknown
 Offer Kaye:
@@ -1388,6 +1422,7 @@ Peter Chines:
   - pchines@nhgri.nih.gov
 Peter Dintelmann:
   - Peter.Dintelmann@Dresdner-Bank.com
+  - Peter.Dintelmann@dresdner-bank.com 
 Peter E. Yee:
   - yee@trident.arc.nasa.gov
 Peter J. Farley III:
@@ -1404,8 +1439,6 @@ Peter Wolfe:
   - wolfe@teloseng.com
 Peter van Heusden:
   - pvh@junior.uwc.ac.za
-Peter Dintelmann:
-  - Peter.Dintelmann@dresdner-bank.com 
 Petter Reinholdtsen:
   - pere@hungry.com
 Phil Lobbes:
@@ -1455,7 +1488,6 @@ Randolf Werner:
 Randy J Ray:
   - rjray@uswest.com
   - rjray@redhat.com
-  - rjray@uswest.com
 Randy W. Sims:
   - ml-perl@thepierianspring.org
   - perlbug@perl.org
@@ -1795,8 +1827,6 @@ Ulrich Pfeifer:
   - upf@de.uu.net
 data-drift@so.uio.no:
   - data-drift@so.uio.no
-hansm@euronet.nl:
-  - hansm@euronet.nl
 Unknown:
   - unknown@unknown
 Unknown Ricoh Contributor II:
@@ -1944,10 +1974,8 @@ erik@cs.uni-jena.de:
   - erik@cs.uni-jena.de
 eserte@vran.herceg.de:
   - eserte@vran.herceg.de
-fawaka@gmail.com (via RT):
+fawaka@gmail.com:
   - perlbug-followup@perl.org
-gfx:
-  - gfuji@cpan.org
 glasser@tang-eleven-seventy-nine.mit.edu:
   - glasser@tang-eleven-seventy-nine.mit.edu
 gml4410@ggr.co.uk:
@@ -1956,8 +1984,6 @@ gomar@md.media-web.de:
   - gomar@md.media-web.de
 grommel@sears.com:
   - grommel@sears.com
-ian.goodacre@xtra.co.nz:
-  - perlbug-followup@perl.org
 ian@dial.pipex.com:
   - ian@dial.pipex.com
 ikegami:
@@ -2053,8 +2079,6 @@ rabbit.us:
   - rabbit+bugs@rabbit.us
 raf@tradingpost.com.au:
   - raf@tradingpost.com.au
-rmgiroux@acm.org:
-  - rmgiroux@acm.org
 root@chronos.fi.muni.cz:
   - root@chronos.fi.muni.cz
 root@dixie.cscaper.com:
@@ -2075,10 +2099,8 @@ scott@perlcode.org:
   - scott@perlcode.org
 smoketst@hp46t243.cup.hp.com:
   - smoketst@hp46t243.cup.hp.com
-system PRIVILEGED account:
+root@peano.zk3.dec.com:
   - root@peano.zk3.dec.com
-wdconsta:
-  - wdconsta@cs.adelaide.edu.au
 wolfgang.laun@chello.at:
   - wolfgang.laun@chello.at
 yath-perlbug@yath.de:
