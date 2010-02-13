@@ -2,6 +2,10 @@
 
 use perl5i::0;
 use YAML::XS;
+use Gravatar::URL;
+use LWP::Simple;
+use Imager;
+
 no utf8;  # its interfering with the DATA loading
 
 my %Ignore_Emails = map { $_ => 1 } qw(
@@ -13,7 +17,9 @@ my %Ignore_Emails = map { $_ => 1 } qw(
 
 my $authors2email = Load(join "", <DATA>);
 my $email2authors = invert_authors2email($authors2email);
-1;
+
+#normalize_log($email2authors);
+get_gravatars($authors2email);
 
 sub invert_authors2email {
     my $authors2email = shift;
@@ -35,28 +41,49 @@ sub invert_authors2email {
     return \%email2authors;
 }
 
-open my $log, "log.xml";
-binmode $log, ":utf8";
-my @log = <$log>;
-close $log;
+sub get_gravatars {
+    my $authors2emails = shift;
 
-open my $out, ">", "log.new.xml";
-binmode $out, ":utf8";
-for my $line (@log) {
-    if( $line =~ m{author="(.*?) &lt;(.*?)&gt;"} ) {
-        my $author = $email2authors->{$2};
-        if( $author ) {
-            $line =~ s{author="(.*?)"}{author="$author"};
-        }
-        else {
-            warn "Author for '$1', '$2', '$line' not found";
+    local $CWD = "local_avatars";
+
+    for my $author ($authors2emails->keys->flatten) {
+        my @emails = $authors2emails->{$author}->flatten;
+        for my $email (@emails) {
+            my $url = gravatar_url(email => $email, default => "404", size => 40);
+            my $response = getstore($url, "$author.jpg");
+            next unless is_success($response);
+
+            my $img = Imager->new;
+            $img->read( file => "$author.jpg" ) or die $img->errstr;
+            $img->write( file => "$author.png", type => "png" ) or die $img->errstr;
         }
     }
-
-    print $out $line;
 }
-close $out;
 
+sub normalize_log {
+    my $email2authors = shift;
+
+    open my $log, "log.xml";
+    binmode $log, ":utf8";
+    my @log = <$log>;
+    close $log;
+
+    open my $out, ">", "log.new.xml";
+    binmode $out, ":utf8";
+    for my $line (@log) {
+        if ( $line =~ m{author="(.*?) &lt;(.*?)&gt;"} ) {
+            my $author = $email2authors->{$2};
+            if ( $author ) {
+                $line =~ s{author="(.*?)"}{author="$author"};
+            } else {
+                warn "Author for '$1', '$2', '$line' not found";
+            }
+        }
+
+        print $out $line;
+    }
+    close $out;        
+}
 
 __DATA__
 A. C. Yardley:
